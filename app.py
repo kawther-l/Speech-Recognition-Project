@@ -1,31 +1,56 @@
 import streamlit as st
-import speech_recognition as sr
-from speech_logic import transcribe_speech 
+import os
+from speech_logic import transcribe_speech
 
-# Streamlit page configuration MAIN
-st.set_page_config(page_title="Speech-to-Text App", page_icon="🎙️")
+st.set_page_config(page_title="🎙️ Speech Recognition", page_icon="🎤")
 
-# App Title
-st.title("🎙️ Real-Time Speech Recognition")
-st.markdown("This app records your voice through the microphone and converts it to text using Google Speech Recognition.")
+st.title("🎙️ Speech-to-Text App")
+st.markdown("Speak into your microphone and see your words converted into text.")
 
-# Main Button For User
-if st.button("🎧 Start Recording"):
-    st.info("Preparing to record...")
-    
-    try:
-        mic = sr.Microphone()
+# Language selection
+language = st.selectbox("🌍 Choose your language", {
+    "English (US)": "en-US",
+    "French (FR)": "fr-FR",
+    "Arabic (TN)": "ar-TN"
+})
+
+# API selection
+api_choice = st.radio("🧠 Choose Speech Recognition Engine", ("google", "sphinx"))
+
+# Session state for pause/resume
+if "paused" not in st.session_state:
+    st.session_state.paused = False
+if "transcribed_text" not in st.session_state:
+    st.session_state.transcribed_text = ""
+
+# Buttons
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("🎧 Start Recording"):
+        st.session_state.paused = False
         with st.spinner("Recording and transcribing..."):
-            text = transcribe_speech(mic)
-            if text:
-                st.success("✅ Transcription complete!")
-                st.markdown("**You said:**")
-                st.write(text)
-    except OSError as e:
-        st.error(f"Microphone not found or unavailable: {e}")
-    except Exception as e:
-        st.error(f"⚠️ An error occurred: {str(e)}")
+            result = transcribe_speech(api=api_choice, language=language, pause=False)
+            st.session_state.transcribed_text = result
+            st.success("✅ Transcription complete!")
 
-# Footer 
+with col2:
+    if st.button("⏸ Pause"):
+        st.session_state.paused = True
+        st.info("Recording paused.")
+
+with col3:
+    if st.button("💾 Save to File"):
+        if st.session_state.transcribed_text:
+            with open("transcription.txt", "w", encoding="utf-8") as f:
+                f.write(st.session_state.transcribed_text)
+            st.success("✅ Transcription saved as `transcription.txt`.")
+        else:
+            st.warning("⚠️ No transcription to save.")
+
+# Display transcription
+if st.session_state.transcribed_text:
+    st.markdown("### 📝 Transcribed Text:")
+    st.write(st.session_state.transcribed_text)
+
 st.markdown("---")
-st.markdown("Made By B&K")
+st.caption("Built with Streamlit & SpeechRecognition")
